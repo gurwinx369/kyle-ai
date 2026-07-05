@@ -1,0 +1,1 @@
+#capturing and validating firebase token need to be a middleware
