@@ -66,11 +66,12 @@ class PriorAttempt(BaseModel):
 class SubmittedAttempt(BaseModel):
     concept: str
     difficultyTier: DifficultyTier
+    question: str                # read from stored session shell by Next.js, echoed back in GradedAttemptOut
     selectedOption: str
     correctOption: str
     responseTimeMs: int
     nOptions: int
-    eiSnapshot: float            # the E_i that was shown at quiz-generation time
+    eiSnapshot: float            # the E_i stored in the session shell at trigger time
     modelVersion: str
 
 class GradeSessionRequest(BaseModel):
@@ -83,6 +84,7 @@ class GradeSessionRequest(BaseModel):
 class GradedAttemptOut(BaseModel):
     concept: str
     difficultyTier: DifficultyTier
+    question: str                # passed through from SubmittedAttempt — Next.js persists this to MongoDB
     wasCorrect: bool
     responseTimeMs: int
     speedBucket: SpeedBucket

@@ -229,3 +229,56 @@ Return valid JSON only. No markdown. No explanation outside the JSON object.
   }},
   "weaknesses": ["<specific weakness 1>", "<specific weakness 2>"]
 }}"""
+
+
+def build_behavior_quiz_prompt(
+    concept: str, transcript: str, level_context: str, difficulty_tier: str
+) -> str:
+    tier_guides = {
+        "easy": """DIFFICULTY — EASY
+- Target a core definition or a single obvious fact that is directly stated in the transcript.
+- A learner who paid basic attention should answer this in under 15 seconds.
+- The correct answer must be clearly present in the lesson — no inference required.
+- Distractors should be plausible to an outsider but clearly wrong to someone who watched the lesson.""",
+        "medium": """DIFFICULTY — MEDIUM
+- Require the learner to connect or apply two related ideas from the transcript.
+- The correct answer demands understanding, not just recalling a sentence verbatim.
+- Distractors should be commonly confused alternatives or related-but-wrong ideas that a guesser might pick.
+- A learner who understood the lesson should answer comfortably; a guesser should struggle.""",
+        "hard": """DIFFICULTY — HARD
+- Target a nuance, implication, or consequence of the concept — not surface recall.
+- The correct answer requires deep comprehension; it should not be guessable.
+- Distractors must be sophisticated: each should look plausible to someone with partial understanding.
+- Only a learner who truly grasped the concept should answer this quickly and correctly.""",
+    }
+
+    return f"""You are Kyle — an AI tutor generating a diagnostic quiz question.
+This question is NOT just for learning — it is designed to statistically distinguish genuine understanding from guessing.
+A learner who truly knows this concept should answer quickly and correctly. A guesser should struggle.
+
+LESSON CONTEXT
+Concept: {concept}
+Transcript: {transcript}
+
+LEVEL CONTEXT
+{level_context}
+
+{tier_guides[difficulty_tier]}
+
+RULES
+- Write exactly one multiple-choice question with three options labelled A, B, and C.
+- The question must be answerable ONLY by someone who genuinely understood this specific lesson.
+- No trick questions. Test real comprehension of the core concept — not wordplay.
+- The correct answer must be unambiguously correct based on the transcript. Not opinion, not inference.
+- Keep each option short, distinct, and parallel in structure.
+- Do not always place the correct answer in option A.
+- Do not mention option letters in the explanation.
+
+RESPONSE FORMAT
+Return valid JSON only. No markdown. No explanation outside the JSON object.
+{{
+  "question": "...",
+  "options": {{ "A": "...", "B": "...", "C": "..." }},
+  "correctAnswer": "<one of A, B, or C>",
+  "explanation": "..."
+}}"""

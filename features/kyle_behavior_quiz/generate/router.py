@@ -7,5 +7,5 @@ router = APIRouter(prefix="/behavior")
 
 
 @router.post("/session/create", response_model=CreateSessionResponse)
-def create_session(req: CreateSessionRequest):
-    return create_session_service(req)
+async def create_session(req: CreateSessionRequest):
+    return await create_session_service(req)

@@ -23,6 +23,7 @@ def grade_session_service(req: GradeSessionRequest) -> GradeSessionResponse:
         graded_attempts.append(GradedAttemptOut(
             concept=sub.concept,
             difficultyTier=sub.difficultyTier,
+            question=sub.question,
             wasCorrect=was_correct,
             responseTimeMs=sub.responseTimeMs,
             speedBucket=graded["speedBucket"],
