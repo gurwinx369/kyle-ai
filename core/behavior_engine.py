@@ -26,10 +26,7 @@ LIKELIHOOD = {
 P_CORRECT_KNOWS = 0.92
 P_WRONG_KNOWS = 0.08
 
-
-# ============================================================
 # LAYER 0 — E_i, incremental form
-# ============================================================
 def compute_e_i_incremental(ei_current, sample_count, difficulty_tier, new_observed_ms=None):
     """
     ei_current / sample_count: None / 0 on true cold start (Next.js has
@@ -52,10 +49,7 @@ def compute_e_i_incremental(ei_current, sample_count, difficulty_tier, new_obser
     ei_new = (ei_current * (SHRINK_W + sample_count) + new_observed_ms) / (SHRINK_W + sample_count + 1)
     return ei_new, sample_count + 1
 
-
-# ============================================================
 # LAYER 1 — per-attempt grading (UNCHANGED from verified reference)
-# ============================================================
 def speed_bucket(t_i_ms, r_i):
     if t_i_ms > 70000:
         return "UNATTEMPTED"
@@ -106,10 +100,7 @@ def grade_attempt(t_i_ms, e_i_ms, was_correct, n_options, model_version="v1"):
     result["llrContribution"] = math.log(p_knows / p_guess)
     return result
 
-
-# ============================================================
 # LAYER 2 — concept classification (UNCHANGED from verified reference)
-# ============================================================
 def classify_concept(attempts):
     attempted = [a for a in attempts if a["speedBucket"] != "UNATTEMPTED"]
     n = len(attempted)
