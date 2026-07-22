@@ -19,7 +19,16 @@ def _parse_json(raw: str) -> dict:
     cleaned = re.sub(r"^```json\s*", "", raw.strip(), flags=re.IGNORECASE)
     cleaned = re.sub(r"^```\s*", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"```\s*$", "", cleaned, flags=re.IGNORECASE)
-    return json.loads(cleaned.strip())
+    cleaned = cleaned.strip()
+    if not cleaned:
+        raise ValueError("Gemini response was empty after stripping markdown fences.")
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError as exc:
+        snippet = cleaned[:200]
+        raise ValueError(
+            f"Gemini response is not valid JSON: {exc}. Content snippet: {snippet!r}"
+        ) from exc
 
 
 def _shuffle_options(quiz: dict) -> dict:
@@ -68,13 +77,24 @@ async def _generate_one_item(concept_ctx, difficulty_tier: str) -> dict:
         level_context=concept_ctx.levelContext,
         difficulty_tier=difficulty_tier,
     )
-    raw = await generate(
-        system_instruction=system_instruction,
-        user_text="Generate the quiz question.",
-        temperature=0,
+    last_err: Exception | None = None
+    for attempt in range(3):
+        raw = await generate(
+            system_instruction=system_instruction,
+            user_text="Generate the quiz question.",
+            temperature=0,
+        )
+        try:
+            quiz = _parse_json(raw)
+            return _shuffle_options(quiz)
+        except ValueError as exc:
+            last_err = exc
+            if attempt < 2:
+                await asyncio.sleep(0.5 * (attempt + 1))
+    raise RuntimeError(
+        f"Failed to generate a valid quiz item for concept {concept_ctx.concept!r} "
+        f"after 3 attempts. Last error: {last_err}"
     )
-    quiz = _parse_json(raw)
-    return _shuffle_options(quiz)
 
 
 async def create_session_service(req: CreateSessionRequest) -> CreateSessionResponse:

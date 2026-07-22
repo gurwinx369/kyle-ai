@@ -69,7 +69,18 @@ async def generate(system_instruction: str, user_text: str, temperature: float =
                 contents=user_text,
                 config=config,
             )
-            return response.text.strip()
+            text = response.text
+            if not text or not text.strip():
+                finish_reason = None
+                try:
+                    finish_reason = response.candidates[0].finish_reason
+                except (IndexError, AttributeError):
+                    pass
+                raise ValueError(
+                    f"Gemini returned empty content (finish_reason={finish_reason!r}). "
+                    "This is likely a safety filter block or empty candidate."
+                )
+            return text.strip()
 
         try:
             result = await asyncio.to_thread(_call)
