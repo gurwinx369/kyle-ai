@@ -128,5 +128,4 @@ async def create_session_service(req: CreateSessionRequest) -> CreateSessionResp
         )
         for i, ctx in enumerate(req.targetConcepts)
     ]
-
     return CreateSessionResponse(sessionId=session_id, quizItems=quiz_items)
