@@ -6,11 +6,13 @@ Welcome! This folder contains minimal, structured developer documentation for th
 
 ## 📂 Documentation Directory
 
-1.  **[Onboarding Flow Pipeline](file:///D:/projects/kyle-ai/docs/onboarding_pipeline.md)**
+1.  **[Master API Integration & Developer Guide](file:///D:/projects/kyle-ai/docs/API_INTEGRATION_GUIDE.md)**
+    *   *Focus*: Complete step-by-step API integration guide for `ignitio-main-app` engineers (FastAPI microservice endpoints, Next.js feature architecture, schemas, authentication, error matrix, and React component snippets).
+2.  **[Onboarding Flow Pipeline](file:///D:/projects/kyle-ai/docs/onboarding_pipeline.md)**
     *   *Focus*: Mapping selected user tech interests into standard database roles (`developer`, `designer`, `other`) and profile creation.
-2.  **[Assignments & Mid-Video Quizzes Pipeline](file:///D:/projects/kyle-ai/docs/assignments_and_quizzes_pipeline.md)**
+3.  **[Assignments & Mid-Video Quizzes Pipeline](file:///D:/projects/kyle-ai/docs/assignments_and_quizzes_pipeline.md)**
     *   *Focus*: Regular lesson Progression, Gemini-driven written question grading, attempts thresholds (3), and 6-hour cooldown locks.
-3.  **[Behavior Quiz Pipeline](file:///D:/projects/kyle-ai/docs/behavior_quiz_pipeline.md)**
+4.  **[Behavior Quiz Pipeline](file:///D:/projects/kyle-ai/docs/behavior_quiz_pipeline.md)**
     *   *Focus*: Statistical modeling of user mastery (LLR calculations, Speed-bucket confidence adjustments, and Bayes shrinkage time triggers).
 
 ---
