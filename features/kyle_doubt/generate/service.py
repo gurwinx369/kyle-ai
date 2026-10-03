@@ -112,13 +112,16 @@ async def answer_doubt(data: DoubtRequest) -> str:
 
     role_context = get_role_context(data.role.value)
     system_instruction = (
-        build_general_doubt_prompt(role_context)
+        build_general_doubt_prompt(role_context, data.pageContext or "")
         if is_general
-        else build_doubt_prompt(data.concept, data.transcript, role_context)
+        else build_doubt_prompt(data.concept, data.transcript, role_context, data.pageContext or "")
     )
+
+    history_dicts = [{"role": msg.role, "text": msg.text} for msg in data.history] if data.history else []
 
     return await generate(
         system_instruction=system_instruction,
         user_text=data.question,
         temperature=0.7,
+        history=history_dicts,
     )

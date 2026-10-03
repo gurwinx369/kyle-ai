@@ -43,9 +43,9 @@ def _is_rate_limit_error(err: Exception) -> bool:
     return "429" in msg or "resource_exhausted" in msg or "quota" in msg
 
 
-async def generate(system_instruction: str, user_text: str, temperature: float = 0.7) -> str:
+async def generate(system_instruction: str, user_text: str, temperature: float = 0.7, history: list = None) -> str:
     """
-    Send a single-turn generation request to Gemini.
+    Send a generation request to Gemini, optionally with multi-turn history.
     Runs the blocking SDK call in a thread pool to avoid blocking the event loop.
     Rotates through available API keys if a rate limit error (429/RESOURCE_EXHAUSTED) is hit.
     """
@@ -64,9 +64,27 @@ async def generate(system_instruction: str, user_text: str, temperature: float =
         client = _get_client_for_index(key_index)
 
         def _call() -> str:
+            contents = []
+            if history:
+                for msg in history:
+                    role = msg.get("role", "user")
+                    text = msg.get("text", "")
+                    contents.append(
+                        types.Content(
+                            role=role,
+                            parts=[types.Part.from_text(text=text)]
+                        )
+                    )
+            contents.append(
+                types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(text=user_text)]
+                )
+            )
+
             response = client.models.generate_content(
                 model=GEMINI_MODEL,
-                contents=user_text,
+                contents=contents,
                 config=config,
             )
             text = response.text
