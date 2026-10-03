@@ -11,10 +11,10 @@ _BLOCKED_PHRASES = [
     "copy paste solution",
 ]
 
-_GENERAL_GREETINGS = {"hi", "hello", "hey", "hi buddy", "hello kyle"}
+_GENERAL_GREETINGS = {"hi", "hello", "hey", "hi buddy", "hello Kibo"}
 
 _CONTEXTUAL_GREETINGS = {
-    "hi", "hello", "hey", "hi buddy", "hello kyle", "good morning", "good evening"
+    "hi", "hello", "hey", "hi buddy", "hello Kibo", "good morning", "good evening"
 }
 
 
@@ -33,19 +33,19 @@ def _get_static_general_response(question: str) -> str | None:
 
     if q in _GENERAL_GREETINGS:
         return (
-            "Hi, I'm Kyle. I can help you with roadmap guidance, learning focus, "
+            "Hi, I'm Kibo. I can help you with roadmap guidance, learning focus, "
             "concepts, and study strategy. What are you learning today?"
         )
 
     if any(
         phrase in q
         for phrase in [
-            "who are you", "what is kyle", "who made you",
+            "who are you", "what is Kibo", "who made you",
             "whom do you belong to", "what can you do", "whom you belong to",
         ]
     ):
         return (
-            "I'm Kyle, Ignitio's AI mentor. I'm part of the Ignitio learning platform "
+            "I'm Kibo, Ignitio's AI mentor. I'm part of the Ignitio learning platform "
             "and I'm here to guide learners with roadmap direction, concepts, focus, and "
             "study strategy. I give hints and explanations, not full code solutions."
         )
@@ -54,7 +54,7 @@ def _get_static_general_response(question: str) -> str | None:
         return (
             "Ignitio is a gamified learning platform that helps learners build technical "
             "skills through structured roadmaps, progress tracking, assignments, quizzes, "
-            "and AI mentor guidance. Kyle is the AI mentor layer inside Ignitio."
+            "and AI mentor guidance. Kibo is the AI mentor layer inside Ignitio."
         )
 
     dangerous = ["how to make a gun", "weapon making", "bomb", "hacking someone", "illegal activity"]
@@ -80,14 +80,14 @@ def _get_static_contextual_response(question: str, concept: str | None) -> str |
 
     if any(
         phrase in q
-        for phrase in ["who are you", "what is kyle", "what can you do", "who made you"]
+        for phrase in ["who are you", "what is Kibo", "what can you do", "who made you"]
     ):
         if concept:
             return (
-                f"I'm Kyle, Ignitio's AI mentor. In this lesson, I can help explain "
+                f"I'm Kibo, Ignitio's AI mentor. In this lesson, I can help explain "
                 f'"{concept}," clear doubts, and guide you with hints.'
             )
-        return "I'm Kyle, Ignitio's AI mentor. In this lesson, I can help clear doubts and guide you with hints."
+        return "I'm Kibo, Ignitio's AI mentor. In this lesson, I can help clear doubts and guide you with hints."
 
     return None
 
@@ -102,7 +102,7 @@ async def answer_doubt(data: DoubtRequest) -> str:
         if _is_disallowed_general_request(data.question):
             return (
                 "I can't write the full code, debug large blocks, or provide complete "
-                "solutions in Global Ask Kyle. I can help you understand the logic, break "
+                "solutions in Global Ask Kibo. I can help you understand the logic, break "
                 "the problem into steps, or give a small hint so you can implement it yourself."
             )
     else:

@@ -7,6 +7,7 @@ from features.kyle_quiz.generate.router import router as quiz_gen_router
 from features.kyle_doubt.generate.router import router as doubt_router
 from features.kyle_behavior_quiz.generate.router import router as behavior_gen_router
 from features.kyle_behavior_quiz.submit.router import router as behavior_submit_router
+from features.kyle_funfact.generate.router import router as funfact_router
 
 app = FastAPI(
     title="Kyle AI Service",
@@ -29,6 +30,7 @@ app.include_router(quiz_gen_router, prefix="/api/v1", tags=["Quiz"])
 app.include_router(doubt_router, prefix="/api/v1", tags=["Doubt"])
 app.include_router(behavior_gen_router, prefix="/api/v1", tags=["Behavior Quiz"])
 app.include_router(behavior_submit_router, prefix="/api/v1", tags=["Behavior Quiz"])
+app.include_router(funfact_router, prefix="/api/v1", tags=["Fun Fact"])
 
 @app.get("/")
 def entry_route():
