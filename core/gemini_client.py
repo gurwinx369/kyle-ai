@@ -1,20 +1,14 @@
 import asyncio
 import random
+import uuid
 
-from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
 from core.config import GEMINI_API_KEYS, GEMINI_MODEL
+from features.posthog.config.posthog_client import get_posthog_client
 
-_clients = [None] * len(GEMINI_API_KEYS)
 _current_key_index = 0
-
-
-def _get_client_for_index(index: int) -> genai.Client:
-    if _clients[index] is None:
-        _clients[index] = genai.Client(api_key=GEMINI_API_KEYS[index])
-    return _clients[index]
 
 
 def _is_transient(err: Exception) -> bool:
@@ -43,7 +37,15 @@ def _is_rate_limit_error(err: Exception) -> bool:
     return "429" in msg or "resource_exhausted" in msg or "quota" in msg
 
 
-async def generate(system_instruction: str, user_text: str, temperature: float = 0.7, history: list = None) -> str:
+async def generate(
+    system_instruction: str,
+    user_text: str,
+    temperature: float = 0.7,
+    history: list = None,
+    posthog_distinct_id: str = None,
+    posthog_trace_id: str = None,
+    posthog_properties: dict = None,
+) -> str:
     """
     Send a generation request to Gemini, optionally with multi-turn history.
     Runs the blocking SDK call in a thread pool to avoid blocking the event loop.
@@ -59,9 +61,12 @@ async def generate(system_instruction: str, user_text: str, temperature: float =
     start_index = _current_key_index
     num_keys = len(GEMINI_API_KEYS)
 
+    # ponytail: trace_id defaulted here so callers don't have to import uuid
+    _trace_id = posthog_trace_id or str(uuid.uuid4())
+
     for attempt in range(num_keys):
         key_index = (start_index + attempt) % num_keys
-        client = _get_client_for_index(key_index)
+        client = get_posthog_client(key_index)
 
         def _call() -> str:
             contents = []
@@ -82,10 +87,18 @@ async def generate(system_instruction: str, user_text: str, temperature: float =
                 )
             )
 
+            ph_kwargs = {}
+            if posthog_distinct_id:
+                ph_kwargs["posthog_distinct_id"] = posthog_distinct_id
+                ph_kwargs["posthog_trace_id"] = _trace_id
+            if posthog_properties:
+                ph_kwargs["posthog_properties"] = posthog_properties
+
             response = client.models.generate_content(
                 model=GEMINI_MODEL,
                 contents=contents,
                 config=config,
+                **ph_kwargs,
             )
             text = response.text
             if not text or not text.strip():
