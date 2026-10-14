@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, field_validator
 
@@ -39,6 +39,7 @@ class AssignmentGenerateRequest(BaseModel):
 
 class AssignmentGenerateResponse(BaseModel):
     assignment_prompt: str
+    conversation_id: Optional[str] = None
 
 
 class AssignmentScoreRequest(BaseModel):
@@ -83,3 +84,4 @@ class AssignmentScoreResponse(BaseModel):
     passed: bool
     breakdown: ScoreBreakdown
     weaknesses: List[str]
+    conversation_id: Optional[str] = None

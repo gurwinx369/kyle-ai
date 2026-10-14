@@ -4,12 +4,19 @@ from pydantic import BaseModel, model_validator
 from schemas.common import ModeEnum, RoleEnum
 
 
+class Message(BaseModel):
+    role: str  # "user" or "model"
+    text: str
+
+
 class DoubtRequest(BaseModel):
     mode: Optional[ModeEnum] = None
     concept: Optional[str] = None
     transcript: Optional[str] = None
     role: RoleEnum
     question: str
+    pageContext: Optional[str] = None
+    history: Optional[list[Message]] = []
 
     @model_validator(mode="after")
     def require_context_for_contextual_mode(self) -> "DoubtRequest":
@@ -35,3 +42,4 @@ class DoubtRequest(BaseModel):
 
 class DoubtResponse(BaseModel):
     answer: str
+    conversation_id: Optional[str] = None

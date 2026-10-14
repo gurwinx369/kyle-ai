@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from schemas.doubt import DoubtRequest, DoubtResponse
 from utils.firebase.token_auth import verify_token
+from core.trace import get_trace_id
 from .service import answer_doubt
 
 router = APIRouter()
@@ -16,10 +17,13 @@ router = APIRouter()
 async def doubt_generate(
     body: DoubtRequest,
     _token: dict = Depends(verify_token),
+    trace_id: str = Depends(get_trace_id),
 ) -> DoubtResponse | JSONResponse:
     try:
-        answer = await answer_doubt(body)
-        return DoubtResponse(answer=answer)
+        user_id = _token.get("uid", "anonymous")
+        answer = await answer_doubt(body, user_id=user_id, trace_id=trace_id)
+        return DoubtResponse(answer=answer, conversation_id=trace_id)
+
     except Exception as err:
         msg = str(err).lower()
         if (

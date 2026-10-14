@@ -1,27 +1,30 @@
-# Role context map — injects beginner-safe framing into every Kyle prompt.
+# Role context map — injects college-student-aware framing into every Kibo prompt.
 # Add a new role by adding one entry to _ROLE_CONTEXTS. Nothing else changes.
 
 _ROLE_CONTEXTS: dict[str, str] = {
     "student": (
-        "Use examples from everyday school life — like preparing for a test, "
-        "writing class notes, or finishing an assignment."
+        "The learner is a college student. Use examples that feel familiar — studying for a test, "
+        "managing a chaotic schedule, finishing something between classes. Be practical and direct."
     ),
     "developer": (
-        "Use simple, beginner-friendly coding examples — like writing a small script, "
-        "fixing a mistake in code, or trying a new tool for the first time."
+        "The learner is building developer skills. Use beginner-friendly coding examples — "
+        "writing a small script, fixing an obvious mistake, trying a new tool for the first time. "
+        "Don't assume they know more than the current lesson."
     ),
     "writer": (
-        "Use writing examples most people already understand — like drafting an email, "
-        "editing a blog post, or rewriting a sentence to sound clearer."
+        "The learner is building writing skills. Use examples they already understand — "
+        "drafting an email, editing a paragraph to be clearer, rewriting something that sounds off. "
+        "Keep it practical and grounded."
     ),
     "designer": (
-        "Use design examples a beginner would recognise — like picking a colour for a "
-        "poster, arranging a simple page layout, or explaining a design idea to a friend."
+        "The learner is building design skills. Use accessible examples — picking colours, "
+        "arranging a simple layout, explaining a design decision to someone else. "
+        "Don't assume prior design theory knowledge."
     ),
     "other": (
-        "The learner has not selected a specific professional role. Explain concepts "
-        "clearly, avoid profession-specific assumptions, use practical examples, and "
-        "offer adaptable guidance."
+        "The learner hasn't selected a specific role. Explain concepts clearly, "
+        "avoid profession-specific assumptions, use practical examples, and "
+        "offer guidance that anyone could apply."
     ),
 }
 

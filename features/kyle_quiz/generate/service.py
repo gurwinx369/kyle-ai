@@ -51,7 +51,14 @@ def _shuffle_quiz_options(quiz: dict) -> dict:
     return {**quiz, "options": options, "correctAnswer": new_correct}
 
 
-async def generate_quiz(data: QuizGenerateRequest) -> QuizGenerateResponse:
+from features.posthog.config.posthog_client import ENV
+
+
+async def generate_quiz(
+    data: QuizGenerateRequest,
+    user_id: str = None,
+    trace_id: str = None,
+) -> QuizGenerateResponse:
     role_context = get_role_context(data.role.value)
     system_instruction = build_quiz_prompt(
         concept=data.concept,
@@ -62,6 +69,12 @@ async def generate_quiz(data: QuizGenerateRequest) -> QuizGenerateResponse:
         system_instruction=system_instruction,
         user_text="Generate the quiz question.",
         temperature=0,  # deterministic — no random variance in quiz questions
+        posthog_distinct_id=user_id,
+        posthog_trace_id=trace_id,
+        posthog_properties={
+            "feature": "quiz_generate",
+            "env": ENV,
+        },
     )
     quiz = _parse_json(raw)
     shuffled = _shuffle_quiz_options(quiz)
@@ -70,4 +83,6 @@ async def generate_quiz(data: QuizGenerateRequest) -> QuizGenerateResponse:
         options=QuizOptions(**shuffled["options"]),
         correct_answer=shuffled["correctAnswer"],
         explanation=shuffled["explanation"],
+        conversation_id=trace_id,
     )
+

@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 
 from schemas.common import RoleEnum
@@ -20,3 +21,4 @@ class QuizGenerateResponse(BaseModel):
     options: QuizOptions
     correct_answer: str
     explanation: str
+    conversation_id: Optional[str] = None
