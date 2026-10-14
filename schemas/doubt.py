@@ -42,3 +42,4 @@ class DoubtRequest(BaseModel):
 
 class DoubtResponse(BaseModel):
     answer: str
+    conversation_id: Optional[str] = None

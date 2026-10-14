@@ -70,7 +70,15 @@ def _choose_difficulty_tier(prior_accuracy_rate: float | None) -> str:
     return "medium"
 
 
-async def _generate_one_item(concept_ctx, difficulty_tier: str) -> dict:
+from features.posthog.config.posthog_client import ENV
+
+
+async def _generate_one_item(
+    concept_ctx,
+    difficulty_tier: str,
+    user_id: str = None,
+    trace_id: str = None,
+) -> dict:
     system_instruction = build_behavior_quiz_prompt(
         concept=concept_ctx.concept,
         transcript=concept_ctx.transcriptContext,
@@ -83,6 +91,14 @@ async def _generate_one_item(concept_ctx, difficulty_tier: str) -> dict:
             system_instruction=system_instruction,
             user_text="Generate the quiz question.",
             temperature=0,
+            posthog_distinct_id=user_id,
+            posthog_trace_id=trace_id,
+            posthog_properties={
+                "feature": "behavior_quiz_generate",
+                "env": ENV,
+                "difficulty_tier": difficulty_tier,
+                "concept": getattr(concept_ctx, "concept", ""),
+            },
         )
         try:
             quiz = _parse_json(raw)
@@ -97,8 +113,13 @@ async def _generate_one_item(concept_ctx, difficulty_tier: str) -> dict:
     )
 
 
-async def create_session_service(req: CreateSessionRequest) -> CreateSessionResponse:
+async def create_session_service(
+    req: CreateSessionRequest,
+    user_id: str = None,
+    trace_id: str = None,
+) -> CreateSessionResponse:
     session_id = str(uuid.uuid4())
+    effective_user_id = user_id or req.userId
 
     # Resolve tier and E_i per concept up front (synchronous, no I/O)
     tiers: list[str] = []
@@ -112,7 +133,15 @@ async def create_session_service(req: CreateSessionRequest) -> CreateSessionResp
 
     # Generate all questions concurrently — one Gemini call per concept
     generated_items = await asyncio.gather(
-        *[_generate_one_item(ctx, tiers[i]) for i, ctx in enumerate(req.targetConcepts)]
+        *[
+            _generate_one_item(
+                ctx,
+                tiers[i],
+                user_id=effective_user_id,
+                trace_id=trace_id,
+            )
+            for i, ctx in enumerate(req.targetConcepts)
+        ]
     )
 
     quiz_items = [
@@ -128,4 +157,9 @@ async def create_session_service(req: CreateSessionRequest) -> CreateSessionResp
         )
         for i, ctx in enumerate(req.targetConcepts)
     ]
-    return CreateSessionResponse(sessionId=session_id, quizItems=quiz_items)
+    return CreateSessionResponse(
+        sessionId=session_id,
+        quizItems=quiz_items,
+        conversation_id=trace_id,
+    )
+

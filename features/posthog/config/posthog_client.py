@@ -4,10 +4,14 @@ from posthog.ai.gemini import Client
 
 from core.config import GEMINI_API_KEYS
 
+ENV = os.getenv("APP_ENV", "development")
+
 posthog = Posthog(
-    os.getenv("POSTHOG_API_KEY", ""),
+    project_api_key=os.getenv("POSTHOG_API_KEY", ""),
     host=os.getenv("POSTHOG_HOST", "https://us.i.posthog.com"),
+    disabled=os.getenv("POSTHOG_DISABLED", "false").lower() == "true",
 )
+
 
 # One PostHog-wrapped client per API key, mirroring the rotation pool in gemini_client.py.
 # ponytail: lazy-init list mirrors _clients in gemini_client.py — same pattern, no new abstraction.

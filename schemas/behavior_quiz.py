@@ -47,6 +47,7 @@ class QuizItemOut(BaseModel):
 class CreateSessionResponse(BaseModel):
     sessionId: str
     quizItems: list[QuizItemOut]
+    conversation_id: Optional[str] = None
 
 
 # ============================================================

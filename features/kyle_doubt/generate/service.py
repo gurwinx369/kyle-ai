@@ -89,7 +89,10 @@ def _get_static_contextual_response(question: str, concept: str | None) -> str |
     return None
 
 
-async def answer_doubt(data: DoubtRequest) -> str:
+from features.posthog.config.posthog_client import ENV
+
+
+async def answer_doubt(data: DoubtRequest, user_id: str = None, trace_id: str = None) -> str:
     is_general = data.mode == ModeEnum.general or not data.concept
 
     if is_general:
@@ -121,4 +124,12 @@ async def answer_doubt(data: DoubtRequest) -> str:
         user_text=data.question,
         temperature=0.7,
         history=history_dicts,
+        posthog_distinct_id=user_id,
+        posthog_trace_id=trace_id,
+        posthog_properties={
+            "feature": "doubt_solving",
+            "env": ENV,
+            "mode": "general" if is_general else "contextual",
+        },
     )
+

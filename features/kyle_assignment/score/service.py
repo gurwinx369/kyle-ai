@@ -26,7 +26,14 @@ def _parse_json(raw: str) -> dict:
     return json.loads(cleaned.strip())
 
 
-async def score_assignment(data: AssignmentScoreRequest) -> AssignmentScoreResponse:
+from features.posthog.config.posthog_client import ENV
+
+
+async def score_assignment(
+    data: AssignmentScoreRequest,
+    user_id: str = None,
+    trace_id: str = None,
+) -> AssignmentScoreResponse:
     day_context = _build_day_context(data.levels)
     role_context = get_role_context(data.role.value)
     system_instruction = build_scoring_prompt(
@@ -41,6 +48,13 @@ async def score_assignment(data: AssignmentScoreRequest) -> AssignmentScoreRespo
         system_instruction=system_instruction,
         user_text="Score this response.",
         temperature=0,  # deterministic — no creative variance in grading
+        posthog_distinct_id=user_id,
+        posthog_trace_id=trace_id,
+        posthog_properties={
+            "feature": "assignment_score",
+            "env": ENV,
+            "day_number": data.day_number,
+        },
     )
     parsed = _parse_json(raw)
     return AssignmentScoreResponse(
@@ -54,4 +68,6 @@ async def score_assignment(data: AssignmentScoreRequest) -> AssignmentScoreRespo
             role_aptitude=parsed["breakdown"]["roleAptitude"],
         ),
         weaknesses=parsed.get("weaknesses", []),
+        conversation_id=trace_id,
     )
+

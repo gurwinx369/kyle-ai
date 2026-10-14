@@ -6,9 +6,32 @@ from google.genai import types
 from google.genai.errors import APIError
 
 from core.config import GEMINI_API_KEYS, GEMINI_MODEL
-from features.posthog.config.posthog_client import get_posthog_client
+from features.posthog.config.posthog_client import get_posthog_client, posthog
 
 _current_key_index = 0
+
+
+def _capture_exception(
+    err: Exception,
+    distinct_id: str = "anonymous",
+    trace_id: str = "",
+    properties: dict = None,
+) -> None:
+    """Send LLM failure / safety exception to PostHog error tracking without crashing."""
+    try:
+        if posthog and not getattr(posthog, "disabled", False):
+            posthog.capture_exception(
+                err,
+                distinct_id=distinct_id or "anonymous",
+                properties={
+                    "trace_id": trace_id,
+                    "llm_call": True,
+                    "model": GEMINI_MODEL,
+                    **(properties or {}),
+                },
+            )
+    except Exception:
+        pass
 
 
 def _is_transient(err: Exception) -> bool:
@@ -61,12 +84,17 @@ async def generate(
     start_index = _current_key_index
     num_keys = len(GEMINI_API_KEYS)
 
-    # ponytail: trace_id defaulted here so callers don't have to import uuid
     _trace_id = posthog_trace_id or str(uuid.uuid4())
+    _distinct_id = posthog_distinct_id or "anonymous"
 
     for attempt in range(num_keys):
         key_index = (start_index + attempt) % num_keys
         client = get_posthog_client(key_index)
+
+        # Tag retry attempts so PostHog analytics does not double-count retries as genuine new usage
+        call_properties = dict(posthog_properties or {})
+        if attempt > 0:
+            call_properties["retry"] = True
 
         def _call() -> str:
             contents = []
@@ -87,18 +115,13 @@ async def generate(
                 )
             )
 
-            ph_kwargs = {}
-            if posthog_distinct_id:
-                ph_kwargs["posthog_distinct_id"] = posthog_distinct_id
-                ph_kwargs["posthog_trace_id"] = _trace_id
-            if posthog_properties:
-                ph_kwargs["posthog_properties"] = posthog_properties
-
             response = client.models.generate_content(
                 model=GEMINI_MODEL,
                 contents=contents,
                 config=config,
-                **ph_kwargs,
+                posthog_distinct_id=_distinct_id,
+                posthog_trace_id=_trace_id,
+                posthog_properties=call_properties,
             )
             text = response.text
             if not text or not text.strip():
@@ -107,10 +130,17 @@ async def generate(
                     finish_reason = response.candidates[0].finish_reason
                 except (IndexError, AttributeError):
                     pass
-                raise ValueError(
+                empty_err = ValueError(
                     f"Gemini returned empty content (finish_reason={finish_reason!r}). "
                     "This is likely a safety filter block or empty candidate."
                 )
+                _capture_exception(
+                    empty_err,
+                    distinct_id=_distinct_id,
+                    trace_id=_trace_id,
+                    properties={**call_properties, "finish_reason": str(finish_reason)},
+                )
+                raise empty_err
             return text.strip()
 
         try:
@@ -130,6 +160,12 @@ async def generate(
 
             # Inspect the final error for rate limiting
             if not _is_rate_limit_error(err):
+                _capture_exception(
+                    err,
+                    distinct_id=_distinct_id,
+                    trace_id=_trace_id,
+                    properties=call_properties,
+                )
                 raise err
 
             next_index = (key_index + 1) % num_keys
@@ -138,6 +174,14 @@ async def generate(
             if has_next_key and attempt < num_keys - 1:
                 _current_key_index = next_index
             else:
-                raise RuntimeError(
+                rate_limit_err = RuntimeError(
                     f"All {num_keys} Gemini API key(s) hit rate limits. Please wait before retrying."
-                ) from err
+                )
+                _capture_exception(
+                    rate_limit_err,
+                    distinct_id=_distinct_id,
+                    trace_id=_trace_id,
+                    properties={**call_properties, "failure_reason": "rate_limit_exhausted"},
+                )
+                raise rate_limit_err from err
+

@@ -2,7 +2,14 @@ from schemas.funfact import FunFactRequest
 from core.gemini_client import generate
 from utils.prompts.role_context import get_role_context
 
-async def generate_fun_fact(request: FunFactRequest) -> str:
+from features.posthog.config.posthog_client import ENV
+
+
+async def generate_fun_fact(
+    request: FunFactRequest,
+    user_id: str = None,
+    trace_id: str = None,
+) -> str:
     role_ctx = get_role_context(request.user_profession or "student")
 
     system_prompt = f"""You are Kibo, an AI learning mentor.
@@ -16,7 +23,17 @@ Concept: {request.concept}
 Transcript context:
 {request.transcript[:3000]}
 """
-    
+
     # We use empty prompt as the system prompt contains everything needed
-    response = await generate(user_text="Provide a fun fact.", system_instruction=system_prompt)
+    response = await generate(
+        user_text="Provide a fun fact.",
+        system_instruction=system_prompt,
+        posthog_distinct_id=user_id,
+        posthog_trace_id=trace_id,
+        posthog_properties={
+            "feature": "funfact_generate",
+            "env": ENV,
+        },
+    )
     return response.strip()
+

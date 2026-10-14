@@ -8,3 +8,5 @@ class FunFactRequest(BaseModel):
 
 class FunFactResponse(BaseModel):
     fun_fact: str
+    conversation_id: Optional[str] = None
+
