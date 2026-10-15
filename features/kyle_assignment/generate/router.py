@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from schemas.assignment import AssignmentGenerateRequest, AssignmentGenerateResponse
 from utils.firebase.token_auth import verify_token
 from core.trace import get_trace_id
 from .service import generate_assignment
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -25,7 +29,8 @@ async def assignment_generate(
             assignment_prompt=assignment_prompt,
             conversation_id=trace_id,
         )
-    except Exception:
+    except Exception as exc:
+        logger.exception("[assignment_generate] Error: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",

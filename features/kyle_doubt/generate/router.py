@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 
@@ -5,6 +7,8 @@ from schemas.doubt import DoubtRequest, DoubtResponse
 from utils.firebase.token_auth import verify_token
 from core.trace import get_trace_id
 from .service import answer_doubt
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -25,6 +29,7 @@ async def doubt_generate(
         return DoubtResponse(answer=answer, conversation_id=trace_id)
 
     except Exception as err:
+        logger.exception("[doubt_generate] Error: %s", err)
         msg = str(err).lower()
         if (
             "503" in msg
@@ -35,7 +40,7 @@ async def doubt_generate(
             return JSONResponse(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 content={
-                    "error": "Kyle is busy right now. Please try again in a few seconds.",
+                    "error": "Kibo is busy right now. Please try again in a few seconds.",
                     "retryable": True,
                 },
             )

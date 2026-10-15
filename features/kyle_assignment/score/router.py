@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from schemas.assignment import AssignmentScoreRequest, AssignmentScoreResponse
 from utils.firebase.token_auth import verify_token
 from core.trace import get_trace_id
 from .service import score_assignment
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -21,7 +25,8 @@ async def assignment_score(
     try:
         user_id = _token.get("uid", "anonymous")
         return await score_assignment(body, user_id=user_id, trace_id=trace_id)
-    except Exception:
+    except Exception as exc:
+        logger.exception("[assignment_score] Error: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",

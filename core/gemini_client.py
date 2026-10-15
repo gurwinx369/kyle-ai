@@ -60,6 +60,10 @@ def _is_rate_limit_error(err: Exception) -> bool:
     return "429" in msg or "resource_exhausted" in msg or "quota" in msg
 
 
+def _is_retryable_error(err: Exception) -> bool:
+    return _is_rate_limit_error(err) or _is_transient(err)
+
+
 async def generate(
     system_instruction: str,
     user_text: str,
@@ -72,7 +76,7 @@ async def generate(
     """
     Send a generation request to Gemini, optionally with multi-turn history.
     Runs the blocking SDK call in a thread pool to avoid blocking the event loop.
-    Rotates through available API keys if a rate limit error (429/RESOURCE_EXHAUSTED) is hit.
+    Rotates through available API keys if a rate limit error (429) or transient error (503) is hit.
     """
     global _current_key_index
 
@@ -148,18 +152,18 @@ async def generate(
             _current_key_index = key_index
             return result
         except Exception as err:
-            # On transient 503, retry once on the same key
+            # On transient 503, retry once on the same key with brief jitter
             if _is_transient(err):
                 try:
-                    await asyncio.sleep(random.uniform(0.7, 1.2))
+                    await asyncio.sleep(random.uniform(0.5, 1.0))
                     result = await asyncio.to_thread(_call)
                     _current_key_index = key_index
                     return result
                 except Exception as retry_err:
                     err = retry_err
 
-            # Inspect the final error for rate limiting
-            if not _is_rate_limit_error(err):
+            # Inspect if error is retryable across remaining keys
+            if not _is_retryable_error(err):
                 _capture_exception(
                     err,
                     distinct_id=_distinct_id,
@@ -174,14 +178,14 @@ async def generate(
             if has_next_key and attempt < num_keys - 1:
                 _current_key_index = next_index
             else:
-                rate_limit_err = RuntimeError(
-                    f"All {num_keys} Gemini API key(s) hit rate limits. Please wait before retrying."
+                exhausted_err = RuntimeError(
+                    f"All {num_keys} Gemini API key(s) failed due to rate limits or temporary high demand. Please try again shortly."
                 )
                 _capture_exception(
-                    rate_limit_err,
+                    exhausted_err,
                     distinct_id=_distinct_id,
                     trace_id=_trace_id,
-                    properties={**call_properties, "failure_reason": "rate_limit_exhausted"},
+                    properties={**call_properties, "failure_reason": "exhausted_pool_limits_or_transient"},
                 )
-                raise rate_limit_err from err
+                raise exhausted_err from err
 
