@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import random
 import uuid
 
@@ -7,6 +8,8 @@ from google.genai.errors import APIError
 
 from core.config import GEMINI_API_KEYS, GEMINI_MODEL
 from features.posthog.config.posthog_client import get_posthog_client, posthog
+
+logger = logging.getLogger(__name__)
 
 _current_key_index = 0
 
@@ -60,8 +63,18 @@ def _is_rate_limit_error(err: Exception) -> bool:
     return "429" in msg or "resource_exhausted" in msg or "quota" in msg
 
 
+def _is_auth_error(err: Exception) -> bool:
+    msg = str(err).lower()
+    return (
+        "401" in msg
+        or "unauthenticated" in msg
+        or "api_key_invalid" in msg
+        or "api key not valid" in msg
+    )
+
+
 def _is_retryable_error(err: Exception) -> bool:
-    return _is_rate_limit_error(err) or _is_transient(err)
+    return _is_rate_limit_error(err) or _is_transient(err) or _is_auth_error(err)
 
 
 async def generate(
@@ -172,6 +185,12 @@ async def generate(
                 )
                 raise err
 
+            if _is_auth_error(err):
+                logger.warning(
+                    "[gemini_client] API key at index %d failed auth (401/unauthenticated). Rotating to next key in pool.",
+                    key_index,
+                )
+
             next_index = (key_index + 1) % num_keys
             has_next_key = next_index != start_index or attempt < num_keys - 1
 
@@ -179,13 +198,13 @@ async def generate(
                 _current_key_index = next_index
             else:
                 exhausted_err = RuntimeError(
-                    f"All {num_keys} Gemini API key(s) failed due to rate limits or temporary high demand. Please try again shortly."
+                    f"All {num_keys} Gemini API key(s) failed (rate limits, 503 high demand, or authentication errors). Please verify GEMINI_API_KEY environment variables."
                 )
                 _capture_exception(
                     exhausted_err,
                     distinct_id=_distinct_id,
                     trace_id=_trace_id,
-                    properties={**call_properties, "failure_reason": "exhausted_pool_limits_or_transient"},
+                    properties={**call_properties, "failure_reason": "exhausted_pool_limits_or_auth"},
                 )
                 raise exhausted_err from err
 

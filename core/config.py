@@ -6,12 +6,18 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+def _clean_key(val: str | None) -> str:
+    if not val:
+        return ""
+    return val.strip().strip("'\"")
+
+
+GEMINI_API_KEY: str = _clean_key(os.getenv("GEMINI_API_KEY"))
 GEMINI_API_KEYS: list[str] = [
-    os.getenv("GEMINI_API_KEY"),
-    os.getenv("GEMINI_API_KEY_ONE"),
-    os.getenv("GEMINI_API_KEY_TWO"),
-    os.getenv("GEMINI_API_KEY_THREE"),
+    _clean_key(os.getenv("GEMINI_API_KEY")),
+    _clean_key(os.getenv("GEMINI_API_KEY_ONE")),
+    _clean_key(os.getenv("GEMINI_API_KEY_TWO")),
+    _clean_key(os.getenv("GEMINI_API_KEY_THREE")),
 ]
 GEMINI_API_KEYS = [key for key in GEMINI_API_KEYS if key]
 
