@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 
@@ -5,6 +7,8 @@ from schemas.funfact import FunFactRequest, FunFactResponse
 from utils.firebase.token_auth import verify_token
 from core.trace import get_trace_id
 from .service import generate_fun_fact
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -24,6 +28,7 @@ async def funfact_generate(
         return FunFactResponse(fun_fact=fun_fact, conversation_id=trace_id)
 
     except Exception as err:
+        logger.exception("[funfact_generate] Error: %s", err)
         msg = str(err).lower()
         if (
             "503" in msg
