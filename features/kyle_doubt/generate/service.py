@@ -1,5 +1,6 @@
 from schemas.doubt import DoubtRequest
 from core.gemini_client import generate
+from core.config import DEFAULT_THINKING_BUDGET, GEMINI_FAST_MODEL, GEMINI_DEEP_MODEL
 from utils.prompts.role_context import get_role_context
 from utils.prompts.system_prompts import build_doubt_prompt, build_general_doubt_prompt
 from schemas.common import ModeEnum
@@ -91,6 +92,26 @@ def _get_static_contextual_response(question: str, concept: str | None) -> str |
 
 from features.posthog.config.posthog_client import ENV
 
+_COMPLEX_KEYWORDS = {
+    "optimize", "optimization", "time complexity", "space complexity",
+    "recurrence", "dynamic programming", "dp", "memoization", "backtracking",
+    "binary search tree", "avl", "red black", "graph", "dijkstra", "segment tree",
+    "tle", "time limit exceeded", "memory limit", "stack overflow", "corner case",
+    "edge case", "proof", "prove", "step by step", "trace", "why does my code fail",
+    "heap", "trie", "shortest path", "topological sort", "divide and conquer",
+}
+
+
+def is_tough_topic(question: str, concept: str | None = None) -> bool:
+    text = f"{question} {concept or ''}".lower()
+    if any(kw in text for kw in _COMPLEX_KEYWORDS):
+        return True
+    if text.count("\n") >= 2 and any(token in text for token in ["def ", "class ", "return ", "{", ";", "for (", "while ("]):
+        return True
+    if len(question) > 180:
+        return True
+    return False
+
 
 async def answer_doubt(data: DoubtRequest, user_id: str = None, trace_id: str = None) -> str:
     is_general = data.mode == ModeEnum.general or not data.concept
@@ -119,17 +140,26 @@ async def answer_doubt(data: DoubtRequest, user_id: str = None, trace_id: str = 
 
     history_dicts = [{"role": msg.role, "text": msg.text} for msg in data.history] if data.history else []
 
+    is_deep = is_tough_topic(data.question, data.concept)
+    target_model = GEMINI_DEEP_MODEL if is_deep else GEMINI_FAST_MODEL
+    thinking_budget = DEFAULT_THINKING_BUDGET if is_deep else None
+
     return await generate(
         system_instruction=system_instruction,
         user_text=data.question,
         temperature=0.7,
         history=history_dicts,
+        model=target_model,
         posthog_distinct_id=user_id,
         posthog_trace_id=trace_id,
+        thinking_budget=thinking_budget,
         posthog_properties={
             "feature": "doubt_solving",
             "env": ENV,
             "mode": "general" if is_general else "contextual",
+            "deep_reasoning": is_deep,
+            "model_assigned": target_model,
+            "thinking_budget": thinking_budget or 0,
         },
     )
 

@@ -24,7 +24,11 @@ GEMINI_API_KEYS = [key for key in GEMINI_API_KEYS if key]
 if not GEMINI_API_KEYS:
     logger.warning("No Gemini API keys configured in environment variables.")
 
-GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+GEMINI_FAST_MODEL: str = os.getenv("GEMINI_FAST_MODEL", "gemini-3.5-flash")
+GEMINI_DEEP_MODEL: str = os.getenv("GEMINI_DEEP_MODEL", "gemini-3.8-flash")
+GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", GEMINI_FAST_MODEL)
+GEMINI_FALLBACK_MODEL: str = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash")
+DEFAULT_THINKING_BUDGET: int = int(os.getenv("DEFAULT_THINKING_BUDGET", "256"))
 
 FIREBASE_PROJECT_ID: str = os.getenv("FIREBASE_PROJECT_ID", "")
 FIREBASE_CLIENT_EMAIL: str = os.getenv("FIREBASE_CLIENT_EMAIL", "")
